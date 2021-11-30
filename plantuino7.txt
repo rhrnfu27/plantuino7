@@ -1,0 +1,101 @@
+#include <Adafruit_NeoPixel.h>
+#include <dht.h>
+
+#define DHT11_PIN 4
+#define Sensor A0
+#define PIN 2
+#define NUMPIXELS 24
+
+#define C 262
+#define D 294
+#define E 330
+#define F 349
+#define G 392
+#define A 440
+#define B 494
+
+Adafruit_NeoPixel pixels=
+Adafruit_NeoPixel(NUMPIXELS,PIN,NEO_GRB+NEO_KHZ800);
+
+int delayval=500;
+int piezoPin=7;
+int tempo=200;
+int notes[25]={G,G,A,A,G,G,E,G,G,E,E,D,
+                G,G,A,A,G,G,E,G,E,D,E,C};
+
+dht DHT;
+
+float temperature ;
+float humidity ;
+float THI ;
+
+void setup() {
+  Serial.begin(9600);
+  pixels.begin();
+  pinMode(piezoPin,OUTPUT);
+
+}
+
+void loop() {
+  int Water=analogRead(Sensor);
+  int Soil_Water=map(Water,1023,295,0,100);
+  
+  int chk=DHT.read11(DHT11_PIN);
+
+  temperature=DHT.temperature;
+  humidity=DHT.humidity;
+  THI=1.8*temperature-(0.55*(1-humidity/100)
+          *(1.8*temperature-26))+32;
+
+  Serial.print("Water=");
+  Serial.print(Water);
+  Serial.print("Soil Water=");
+  Serial.print(Soil_Water);
+  Serial.print("%");
+  Serial.print(temperature,1);
+  Serial.print("C,");
+  Serial.print(humidity,1);
+  Serial.print("%,");
+  Serial.println(THI);  
+
+   delay(5000);
+
+   if(Soil_Water>=70){
+    for(int i=0;i<NUMPIXELS;i++){
+      pixels.setPixelColor(i,pixels.Color(0,125,0));
+      pixels.show();
+      delay(delayval);
+    }
+   }
+
+   if((Soil_Water<70)&&(Soil_Water>=30)){
+    for(int i=0;i<NUMPIXELS;i++){
+      pixels.setPixelColor(i,pixels.Color(0,0,125));
+      pixels.show();
+      delay(delayval);
+    }
+   }
+
+   if(Soil_Water<30){
+    for(int i=0;i<NUMPIXELS;i++){
+      pixels.setPixelColor(i,pixels.Color(125,0,0));
+      pixels.show();
+      delay(delayval);
+    }
+   }
+
+   if(THI>=68){
+    for(int i=0;i<12;i++){
+      tone(piezoPin,notes[i],tempo);
+      delay(300);
+    }
+    delay(100);
+
+    for(int i=12;i<25;i++){
+      tone(piezoPin,notes[i],tempo);
+      delay(300);
+    }
+   }else{
+    digitalWrite(piezoPin,LOW);
+   }
+}
